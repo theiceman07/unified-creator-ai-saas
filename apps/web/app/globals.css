@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink-900: #080807;
+  --color-ink-800: #181715;
+  --color-ink-700: #393632;
+  --color-ink-600: #524d47;
+  --color-ink-500: #6b645c;
+  --color-ink-400: #938f8a;
+  
+  --color-paper-100: #e8e8e3;
+  --color-paper-200: #ddddd5;
+  --color-paper-300: #d1d1c7;
+  --color-paper-400: #bfbfb1;
+
+  --color-signal-pass: #7d9471;
+  --color-signal-warn: #b8954f;
+  --color-signal-fail: #a5493d;
+  --color-signal-live: var(--color-paper-100);
+
+  --radius-sm: 0.15rem;
+  --radius-md: 1rem;
+  --radius-round: 100vw;
+  
+  /* Typography scale */
+  --font-size-display: clamp(5rem, 3.875rem + 5.625vw, 9.25rem);
+  --font-size-display-sm: clamp(4rem, 2.95rem + 5.25vw, 8rem);
+  --font-size-h1: clamp(3.5rem, 3.125rem + 1.875vw, 6rem);
+  --font-size-h2: clamp(3rem, 2.5625rem + 2.1875vw, 4.75rem);
+  --font-size-h3: clamp(2rem, 1.625rem + 1.875vw, 3.5rem);
+  --font-size-h4: clamp(1.5rem, 1.375rem + 0.625vw, 2rem);
+  --font-size-text-lg: clamp(1.125rem, 1.09rem + 0.156vw, 1.25rem);
+  --font-size-text: clamp(1rem, 0.97rem + 0.156vw, 1.125rem);
+  --font-size-text-sm: 0.875rem;
+  --font-size-label: clamp(0.65rem, 0.625rem + 0.125vw, 0.75rem);
+
+  /* Spacing */
+  --spacing-section-sm: clamp(3rem, 2vw, 5rem);
+  --spacing-section-md: clamp(4rem, 3vw, 7rem);
+  --spacing-section-lg: clamp(5.5rem, 4vw, 10rem);
+}
+
+@layer base {
+  :root {
+    --ink-900: #080807;
+    --ink-800: #181715;
+    --ink-700: #393632;
+    --ink-600: #524d47;
+    --ink-500: #6b645c;
+    --ink-400: #938f8a;
+    --paper-100: #e8e8e3;
+    --paper-200: #ddddd5;
+    --paper-300: #d1d1c7;
+    --paper-400: #bfbfb1;
+  }
+
+  body {
+    @apply bg-ink-900 text-paper-100 font-sans antialiased;
+  }
+
+  /* Theme Classes */
+  .theme-dark {
+    background-color: var(--ink-900);
+    color: var(--paper-100);
+    border-color: var(--ink-700);
+  }
+
+  .theme-light {
+    background-color: var(--paper-300);
+    color: var(--ink-900);
+    border-color: var(--paper-400);
+  }
+
+  .paper-surface {
+    background-color: var(--paper-200);
+    color: var(--ink-900);
+  }
+}
+
+/* Hairline border utility */
+.hairline {
+  border-width: 0.094rem;
+}

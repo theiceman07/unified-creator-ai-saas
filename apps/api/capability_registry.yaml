@@ -1,0 +1,27 @@
+capabilities:
+  - name: research
+    class_path: app.capabilities.research.ResearchCapability
+  - name: hook
+    class_path: app.capabilities.hook.HookCapability
+  - name: script
+    class_path: app.capabilities.script.ScriptCapability
+  - name: outline
+    class_path: app.capabilities.outline.OutlineCapability
+  - name: rewrite
+    class_path: app.capabilities.rewrite.RewriteCapability
+  - name: repurpose
+    class_path: app.capabilities.repurpose.RepurposeCapability
+  - name: platform_adapt
+    class_path: app.capabilities.platform_adapt.PlatformAdaptCapability
+  - name: brain_extract
+    class_path: app.capabilities.brain_extract.BrainExtractCapability
+  - name: trend_analysis
+    class_path: app.capabilities.trend_analysis.TrendAnalysisCapability
+  - name: opportunity_finder
+    class_path: app.capabilities.opportunity_finder.OpportunityFinderCapability
+  - name: pitch_writer
+    class_path: app.capabilities.pitch_writer.PitchWriterCapability
+  - name: comment_analyzer
+    class_path: app.capabilities.comment_analyzer.CommentAnalyzerCapability
+  - name: insight_extractor
+    class_path: app.capabilities.insight_extractor.InsightExtractorCapability

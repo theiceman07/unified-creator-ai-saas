@@ -1,0 +1,201 @@
+# =====================================================================
+# CreatorOS Capability Registry — SINGLE SOURCE OF TRUTH
+# Backend loads this at boot to register capabilities; frontend reads GET /v1/capabilities
+# (served from this file) to render tool pickers, card kinds and the System Map page.
+#
+# 27 projects × ~2-3 agents ≈ 60-80 original agents + 27 judges
+#   → 4 orchestrators + 17 specialists + 1 judge service + 5 platform pipelines.
+# Rule: merge by OUTPUT TYPE, parameterize by MODE/CONTEXT. Never two capabilities that emit the same card kind.
+#
+# model_tier: fast | standard | reasoning | judge   (resolved by the LLM gateway, see .env.example)
+# modes_allowed: which run modes may invoke it (quick, studio, campaign, brain, ingest, autopilot, screenplay)
+# =====================================================================
+
+version: 1
+
+orchestrators:
+  - name: intent_router
+    purpose: Classify omnibox text into a route + extracted slots; suggest chips when confidence < 0.6
+    model_tier: fast
+    source_projects: [27]
+  - name: director
+    purpose: Campaign planner/executor (LangGraph). Idea -> full multi-platform content package with human checkpoints
+    model_tier: reasoning
+    source_projects: [18, 21, 22, 27]
+  - name: brain
+    purpose: Conversational supervisor; specialists exposed as tools; streams cards (pattern from #19)
+    model_tier: standard
+    source_projects: [19, 15, 27]
+  - name: autopilot
+    purpose: (Phase 3) weekly loop - analyze -> discover -> propose campaigns -> draft -> await approval. NEVER publishes.
+    model_tier: reasoning
+    source_projects: [22, 21]
+
+specialists:
+  - name: research
+    purpose: External topic research - key facts, angles, sources with citations. Runs ONCE per campaign; artifact shared downstream.
+    modes: [brief, deep, fact_check]
+    outputs: {schema: ResearchBrief, card_kind: research_brief}
+    tools: [web_search, web_fetch]
+    model_tier: standard
+    rubric: research_v1
+    modes_allowed: [quick, campaign, brain, autopilot]
+    source_projects: [12, 18, 21, 23]
+
+  - name: library
+    purpose: Internal RAG over the creator's own content - "have I talked about this?", drift, promises, connections
+    modes: [search, answer, drift, promises, connections, gap]
+    outputs: {schema: LibraryAnswer, card_kind: library_answer}
+    tools: [match_chunks]
+    model_tier: standard
+    rubric: library_v1
+    modes_allowed: [quick, campaign, brain, autopilot]
+    source_projects: [19, 15]
+
+  - name: ideation
+    purpose: Generate AND validate ideas/angles. Source-aware (topic | trend | comments | analytics | library_gap | recycle)
+    modes: [ideas, angles, trend_to_content, comments_to_ideas]
+    outputs: {schema: IdeaSet, card_kind: idea}
+    model_tier: standard
+    rubric: ideation_v1
+    modes_allowed: [quick, campaign, brain, autopilot]
+    source_projects: [01, 11, 18, 23, 04]
+
+  - name: audience
+    purpose: Comment intelligence - sentiment, intent, clusters/themes, questions, complaints, opportunities
+    modes: [analyze, questions_only]
+    outputs: {schema: AudienceReport, card_kind: audience_report}
+    model_tier: fast            # batch classification; clustering is embeddings + small LLM labelling
+    rubric: audience_v1
+    modes_allowed: [quick, ingest, brain, campaign, autopilot]
+    source_projects: [10, 11]
+
+  - name: strategy
+    purpose: Pillars, 30-day strategy, today's plan, weekly plan, publishing calendar/schedule
+    modes: [pillars, strategy_30d, daily_plan, weekly_plan, schedule]
+    outputs: {schema: StrategyOutput, card_kind: content_plan}
+    model_tier: reasoning
+    rubric: strategy_v1
+    modes_allowed: [quick, campaign, brain, autopilot]
+    source_projects: [04, 22, 21]
+
+  - name: hook
+    purpose: N hooks in distinct styles (question, contrarian, stat, story, POV, how-to...). Best-of-N via pairwise judge.
+    modes: [generate, refresh]
+    outputs: {schema: HookSet, card_kind: hook}
+    model_tier: fast
+    rubric: hook_v1
+    modes_allowed: [quick, studio, campaign, brain]
+    source_projects: [03, 05, 16, 18, 21]
+
+  - name: script
+    purpose: Format-aware scripts. Pacing enforced by word budget (~150 wpm).
+    modes: [reel_30, reel_60, short, youtube_long, podcast_segment, carousel_copy, narrative]
+    outputs: {schema: Script, card_kind: script}
+    model_tier: standard
+    rubric: script_v1
+    modes_allowed: [quick, studio, campaign, brain]
+    source_projects: [05, 18, 21]
+
+  - name: copy
+    purpose: Publishing copy - captions, CTAs, titles, descriptions, hashtags. CTA logic (anti-repetition vs history) lives HERE only.
+    modes: [caption, cta, title, description, hashtags, full_pack]
+    outputs: {schema: CopyPack, card_kind: caption}
+    model_tier: fast
+    rubric: copy_v1
+    modes_allowed: [quick, studio, campaign, brain]
+    source_projects: [08, 09, 14, 18]
+
+  - name: voice
+    purpose: NOT a generator. (1) build/refresh VoiceProfile from library, (2) restyle text to voice, (3) score voice match (used by judge)
+    modes: [build_profile, restyle, score]
+    outputs: {schema: VoiceResult, card_kind: voice_profile}
+    model_tier: standard
+    rubric: voice_v1
+    modes_allowed: [quick, studio, ingest, campaign]
+    source_projects: [13]
+
+  - name: repurpose
+    purpose: Master content -> native platform versions (LinkedIn, X thread, IG, YT, newsletter, carousel). Calls copy.cta as a tool.
+    modes: [linkedin, x_thread, instagram, youtube, newsletter, carousel, all]
+    outputs: {schema: PlatformPostSet, card_kind: platform_post}
+    model_tier: standard
+    rubric: repurpose_v1
+    modes_allowed: [quick, studio, campaign, brain, autopilot]
+    source_projects: [02, 21, 14]
+
+  - name: visual
+    purpose: Thumbnail concepts + text overlays, shot list, scenes, camera directions, B-roll, props
+    modes: [thumbnail, shot_list, full_preproduction]
+    outputs: {schema: ProductionPlan, card_kind: shot_list}
+    model_tier: standard
+    rubric: visual_v1
+    modes_allowed: [quick, studio, campaign, brain]
+    source_projects: [07, 18, 25]
+
+  - name: clip
+    purpose: Find self-contained short-form moments in transcripts with validated timestamps; podcast chapters/highlights
+    modes: [clips, chapters, highlights, podcast_pack]
+    outputs: {schema: ClipSet, card_kind: clip}
+    tools: [transcript_store, ffmpeg_cut]
+    model_tier: standard
+    rubric: clip_v1
+    modes_allowed: [quick, ingest, campaign, brain]
+    source_projects: [06, 14, 19]
+    deployment: may run as REMOTE capability (heavy media deps) - see AGENT_CONTRACT.md §6
+
+  - name: performance
+    purpose: Explain WHY content worked; pattern mining over metrics; emits Insights that the Director reuses (closed loop)
+    modes: [explain_item, patterns, next_best]
+    outputs: {schema: PerformanceReport, card_kind: insight}
+    model_tier: reasoning
+    rubric: performance_v1
+    modes_allowed: [quick, ingest, brain, autopilot]
+    source_projects: [24, 22]
+
+  - name: recycle
+    purpose: Score old content for repost/rework/refresh; produce refresh plan (new hook, updated script, new thumbnail)
+    modes: [candidates, refresh_plan]
+    outputs: {schema: RecycleSet, card_kind: recycle_recommendation}
+    model_tier: fast
+    rubric: recycle_v1
+    modes_allowed: [quick, brain, autopilot]
+    source_projects: [16]
+
+  - name: pitch
+    purpose: Media kit + brand pitch + proposal sections + packages + subject lines + alignment score
+    modes: [media_kit, pitch, proposal]
+    outputs: {schema: BrandPitch, card_kind: pitch}
+    model_tier: standard
+    rubric: pitch_v1
+    modes_allowed: [quick, brain]
+    source_projects: [17]
+
+  - name: collab
+    purpose: Match creators by niche/audience overlap (embeddings + rules) and generate collab ideas
+    modes: [find, explain, ideas]
+    outputs: {schema: CollabMatchSet, card_kind: collab_match}
+    model_tier: fast
+    rubric: collab_v1
+    modes_allowed: [quick, brain]
+    source_projects: [26]
+
+  - name: screenplay
+    purpose: Story-bible-aware dialogue/action/scene progression with continuity checks
+    modes: [scene, dialogue, continuity_check, bible_update]
+    outputs: {schema: SceneDraft, card_kind: scene}
+    model_tier: reasoning
+    rubric: screenplay_v1
+    modes_allowed: [screenplay, studio, brain]
+    source_projects: [20]
+
+platform_services:          # not LLM agents; deterministic or infra
+  - name: judge_service       # ONE judge for all 17 specialists; rubric registry in /rubrics
+    source_projects: [all]
+  - name: validators          # schema, char limits, banned words, timestamp ranges, citation presence, CTA repetition
+  - name: context_builder     # assembles CreatorContext once per run (voice, pillars, insights, recent assets)
+  - name: ingest_pipeline     # youtube/url/audio/video/pdf/csv -> transcript -> chunks -> embeddings (#06, #19, #16, #10)
+  - name: scheduler           # calendar + autopilot cron (#04, #21)
+
+# Origin coverage check: every project 01..27 must appear in some source_projects list above.
+# 01✓ 02✓ 03✓ 04✓ 05✓ 06✓ 07✓ 08✓ 09✓ 10✓ 11✓ 12✓ 13✓ 14✓ 15✓ 16✓ 17✓ 18✓ 19✓ 20✓ 21✓ 22✓ 23✓ 24✓ 25✓ 26✓ 27✓
